@@ -3,8 +3,6 @@
 (struct client (id username password balance))
 (struct seller (id username password))
 (struct product (id name price stock seller-id))
-(struct cart-item (id name price quantity))
-
 
 (define users
   (list
@@ -19,8 +17,6 @@
     (product 101 "Camiseta negra" 30000 10 1)
     (product 102 "Gorra azul" 15000 20 1)
     (product 103 "Zapatos deportivos" 120000 5 1))))
-
-(define cart (make-parameter '()))
 
 
 (define (login username password)
@@ -58,8 +54,7 @@
                     (product-stock p)
                     (product-seller-id p))]
            [(string=? user-type "client")
-            (printf "ID: ~a | Producto: ~a | Precio: ~a~n"
-                    (product-id p)
+            (printf "Producto: ~a | Precio: ~a~n"
                     (product-name p)
                     (product-price p))]))
        inv)))
@@ -93,87 +88,12 @@
   (inventory new-inv)
   (displayln "Producto eliminado exitosamente."))
 
-(define (add_cart)
-  (display " Ingrese el ID del producto a agregar: ")
-  (define id (read))
-  (read-line)
-  (display " Ingrese la cantidad que quiere llevar del producto: ")
-  (define quantity (read))
-  (read-line)
-  (define inv (inventory))
-  (define product (findf (lambda (p) ( = ( product-id p) id)) inv))
-  (if product
-      (if ( >= ( product-stock product) quantity)
-          (let* ([c (cart)]
-                 [existing (findf (lambda (item) (= (cart-item-id item) id)) c)])
-            (if existing
-                
-                ;; ACTUALIZAMOS LA CANTIDAD SI EL PRODUCTO YA ESTA EN EL CARRITO
-                (let ((updated-cart
-                       (map (lambda (item)
-                              (if (= (cart-item-id item) id)
-                                  (cart-item id (cart-item-name item) (cart-item-price item)
-                                             (+ (cart-item-quantity item) quantity))
-                                  item))
-                            c)))
-                  (cart updated-cart)
-                  (displayln "Cantidad actualizada en el carrito."))
-
-                ;; Agregar nuevo item al carrito
-                (let ((new-item (cart-item id (product-name product)
-                                           (product-price product) quantity)))
-                  (cart (cons new-item c))
-                  (displayln "Producto agregado al carrito"))))
-          (displayln "No hay suficiente stock disponible"))
-      (displayln " Producto no encontrado, ingrese un id de producto valido")))
-
-(define (remove_cart)
-  (displayln "Ingrese el ID del producto que quiere eliminar del carrito: ")
-  (define id (read))
-  (read-line)
-  (define c (cart))
-  (define item (findf ( lambda (x) (= ( cart-item-id x) id)) c))
-  (if item
-      (begin
-        (display "Ingrese la cantidad que desea eliminar del producto: ")
-        (let* ([quantity_to_delete (read)])
-        (read-line)
-        (let ([updated-cart
-               (if (>= quantity_to_delete (cart-item-quantity item))
-                   ;; SI LA CANTIDAD INGRESADA ES IGUAL O MAYOR A LA QUE HAY DEL PRODUCTO EN EL CARRITO SE ELIMINA POR COMPLETO
-                   (filter (lambda (x) (not ( = (cart-item-id x ) id))) c)
-                   ;; restamos la cantidad y actualizamos el item
-                   (map (lambda (x)
-                          (if (= (cart-item-id x) id)
-                              (cart-item id
-                                         (cart-item-name x)
-                                         (cart-item-price x)
-                                         (- (cart-item-quantity x) quantity_to_delete))
-                              x))
-                        c))])
-          (cart updated-cart)
-          (displayln "Producto actualizado en el carrito"))))
-      (displayln "Ese producto no esta en el carrito, ingrese un id correcto")))
-      
-
-(define (view_cart)
-  (define c (cart))
-  (if (null? c)
-      (displayln "El carrito esta vacio.")
-      (begin
-        (displayln "------------CARRITO------------")
-        (for-each
-         (lambda (item)
-           (printf "ID: ~a | Producto: ~a | Precio: ~a | Cantidad: ~a~n"
-                   (cart-item-id item)
-                   (cart-item-name item)
-                   (cart-item-price item)
-                   (cart-item-quantity item)))
-         c))))
-        
+(define (view_car) (displayln "Visualizar carrito"))
+(define (add_car) (displayln "Añadir al carrito"))
+(define (remove_car) (displayln "Eliminar del carrito"))
 (define (pay) (displayln "Pagar"))
 
-(define (shopping_cart)
+(define (shopping_car)
   (let loop ()
     (displayln "\n--- Tienda Fe_Lu_Pa ---")
     (displayln "1. Iniciar sesión")
@@ -228,9 +148,9 @@
                   (read-line)
                   (cond
                     [(= option2 1) (view_inventory "client") (client-loop)]
-                    [(= option2 2) (view_cart) (client-loop)]
-                    [(= option2 3) (add_cart) (client-loop)]
-                    [(= option2 4) (remove_cart) (client-loop)]
+                    [(= option2 2) (view_car) (client-loop)]
+                    [(= option2 3) (add_car) (client-loop)]
+                    [(= option2 4) (remove_car) (client-loop)]
                     [(= option2 5) (pay) (client-loop)]
                     [(= option2 6) (displayln "Sesión cerrada.")]
                     [else (displayln "Opción inválida.") (client-loop)]))]))
@@ -242,4 +162,4 @@
        (displayln "ERROR: Opción no válida")
        (loop)])))
 
-(shopping_cart)
+(shopping_car)
