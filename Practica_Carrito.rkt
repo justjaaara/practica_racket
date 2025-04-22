@@ -7,11 +7,12 @@
 
 
 (define users
-  (list
-   (client 1 "luis_goez" "1411" 1000000)
-   (client 2 "felipe" "123" 500000)
-   (client 3 "pablo" "1234" 100000)
-   (seller 1 "juangui" "123")))
+  (make-parameter
+   (list
+    (client 1 "luis_goez" "1411" 1000000)
+    (client 2 "felipe" "123" 500000)
+    (client 3 "pablo" "1234" 100000)
+    (seller 1 "juangui" "123"))))
 
 (define inventory
   (make-parameter
@@ -37,7 +38,7 @@
            (list "seller" u)
            #f)]
       [else #f]))
-  (let loop ((lst users))
+  (let loop ((lst (users)))
     (cond
       [(empty? lst) #f]
       [(check-user (first lst)) => (lambda (res) res)]
@@ -171,7 +172,53 @@
                    (cart-item-quantity item)))
          c))))
         
-(define (pay) (displayln "Pagar"))
+(define (pay client-user)
+  (define c (cart))
+  (if (null? c)
+      (displayln "El carrito está vacío.")
+      (let* ([total (apply + (map (lambda (item)
+                                    (* (cart-item-price item) (cart-item-quantity item)))
+                                  c))]
+             [saldo (client-balance client-user)])
+        (if (< saldo total)
+            (begin
+              (printf "Saldo insuficiente. Total: ~a, Tu saldo: ~a~n" total saldo))
+            (begin
+              ;; Descontar stock del inventario
+              (let* ([updated-inv
+                      (map (lambda (prod)
+                             (let ([match (findf (lambda (item)
+                                                   (= (cart-item-id item) (product-id prod))) c)])
+                               (if match
+                                   (product (product-id prod)
+                                            (product-name prod)
+                                            (product-price prod)
+                                            (- (product-stock prod) (cart-item-quantity match))
+                                            (product-seller-id prod))
+                                   prod)))
+                           (inventory))]
+
+                     [new-users
+                      (map (lambda (u)
+                             (if (and (client? u)
+                                      (= (client-id u) (client-id client-user)))
+                                 (client (client-id u)
+                                         (client-username u)
+                                         (client-password u)
+                                         (- (client-balance u) total))
+                                 u))
+                           (users))]
+
+                     [new-client (findf (lambda (u)
+                                          (and (client? u)
+                                               (= (client-id u) (client-id client-user))))
+                                        new-users)])
+                (inventory updated-inv)
+                (users new-users)
+                (cart '())
+                (displayln "Pago Exitoso")
+                (printf "Compra realizada por ~a~n" total)
+                (printf "Saldo actualizado: ~a~n" (client-balance new-client))))))))
 
 (define (shopping_cart)
   (let loop ()
@@ -231,7 +278,7 @@
                     [(= option2 2) (view_cart) (client-loop)]
                     [(= option2 3) (add_cart) (client-loop)]
                     [(= option2 4) (remove_cart) (client-loop)]
-                    [(= option2 5) (pay) (client-loop)]
+                    [(= option2 5) (pay data) (client-loop)]
                     [(= option2 6) (displayln "Sesión cerrada.")]
                     [else (displayln "Opción inválida.") (client-loop)]))]))
            (displayln "Credenciales inválidas"))
